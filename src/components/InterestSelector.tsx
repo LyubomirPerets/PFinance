@@ -32,16 +32,16 @@ export default function InterestSelector() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-4xl font-bold tracking-tight text-white">
           Welcome to PFinance
         </h1>
-        <p className="mt-3 text-lg text-gray-600">
+        <p className="mt-3 text-lg text-slate-400">
           Your AI-powered personal finance tutor. Pick the topics you want to
           learn about.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 auto-rows-max">
         {PERSONAL_FINANCE_INTERESTS.map((interest) => (
           <InterestCard
             key={interest.id}
@@ -59,14 +59,14 @@ export default function InterestSelector() {
           className={`rounded-lg px-8 py-3 text-lg font-semibold text-white transition-all duration-200
             ${
               selected.size > 0
-                ? "bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-xl cursor-pointer"
-                : "bg-gray-300 cursor-not-allowed"
+                ? "bg-emerald-600 hover:bg-emerald-500 shadow-lg hover:shadow-xl cursor-pointer"
+                : "bg-slate-700 cursor-not-allowed"
             }`}
         >
           Continue ({selected.size} selected)
         </button>
         {selected.size === 0 && (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-slate-500">
             Select at least one topic to continue
           </p>
         )}

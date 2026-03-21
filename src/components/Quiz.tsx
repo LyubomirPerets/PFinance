@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import confetti from "canvas-confetti";
+import { recordQuiz, Trophy } from "@/lib/gamification";
+import TrophyModal from "./TrophyModal";
 
 interface Question {
   question: string;
@@ -24,7 +27,8 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [loadingQuiz, setLoadingQuiz] = useState(false);
+  const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
+  const [finalScore, setFinalScore] = useState(0);
 
   const generateQuiz = async () => {
     setLoading(true);
@@ -43,6 +47,7 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
         setAnswers(new Array(data.questions.length).fill(-1));
         setCurrentQuestion(0);
         setShowResults(false);
+        setNewTrophies([]);
       }
     } catch (error) {
       alert("Failed to generate quiz. Please try again.");
@@ -61,7 +66,7 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
     if (currentQuestion < (quiz?.questions.length || 0) - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      setShowResults(true);
+      finishQuiz();
     }
   };
 
@@ -71,28 +76,46 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
     }
   };
 
+  const finishQuiz = () => {
+    if (!quiz) return;
+    const correct = answers.filter((a, i) => a === quiz.questions[i].correct).length;
+    const score = Math.round((correct / quiz.questions.length) * 100);
+
+    const unlocked = recordQuiz(topic, score, correct, quiz.questions.length);
+    setFinalScore(score);
+    setNewTrophies(unlocked);
+
+    if (score >= 80) {
+      confetti({
+        particleCount: score === 100 ? 200 : 120,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ["#10b981", "#34d399", "#6ee7b7", "#fbbf24", "#f59e0b"],
+      });
+    }
+
+    setShowResults(true);
+  };
+
   const calculateScore = () => {
     if (!quiz) return 0;
-    let correct = 0;
-    quiz.questions.forEach((q, index) => {
-      if (answers[index] === q.correct) correct++;
-    });
+    const correct = answers.filter((a, i) => a === quiz.questions[i].correct).length;
     return Math.round((correct / quiz.questions.length) * 100);
   };
 
   if (!quiz) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">
+      <div className="rounded-lg border border-slate-700 bg-slate-900 p-8 text-center">
+        <h3 className="text-xl font-semibold text-white mb-4">
           Test Your Knowledge
         </h3>
-        <p className="text-gray-600 mb-6">
+        <p className="text-slate-400 mb-6">
           Generate an AI-powered quiz about {topicLabel} to test your understanding.
         </p>
         <button
           onClick={generateQuiz}
           disabled={loading}
-          className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 transition-colors font-medium cursor-pointer"
+          className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:bg-slate-700 transition-colors font-medium cursor-pointer"
         >
           {loading ? "Generating Quiz..." : "Generate Quiz"}
         </button>
@@ -102,66 +125,84 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
 
   if (showResults) {
     const score = calculateScore();
+    const correct = answers.filter((a, i) => a === quiz.questions[i].correct).length;
+    const scoreColor =
+      score === 100
+        ? "text-yellow-400"
+        : score >= 80
+        ? "text-emerald-400"
+        : score >= 60
+        ? "text-blue-400"
+        : "text-red-400";
+
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-8">
-        <h3 className="text-2xl font-bold text-gray-900 mb-6">Quiz Results</h3>
+      <>
+        {newTrophies.length > 0 && (
+          <TrophyModal trophies={newTrophies} topicLabel={topicLabel} score={finalScore} onClose={() => setNewTrophies([])} />
+        )}
+        <div className="rounded-lg border border-slate-700 bg-slate-900 p-8">
+          <h3 className="text-2xl font-bold text-white mb-6">Quiz Results</h3>
 
-        <div className="mb-8 text-center">
-          <div className="text-5xl font-bold text-emerald-600 mb-2">
-            {score}%
-          </div>
-          <p className="text-gray-600">
-            You got {answers.filter((a, i) => a === quiz.questions[i].correct).length} out of{" "}
-            {quiz.questions.length} questions correct!
-          </p>
-        </div>
-
-        <div className="space-y-6 mb-8">
-          {quiz.questions.map((q, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-4">
-              <p className="font-semibold text-gray-900 mb-2">
-                Question {index + 1}: {q.question}
-              </p>
-              <p className="text-sm mb-3">
-                <span className="font-medium">Your answer:</span>{" "}
-                <span
-                  className={
-                    answers[index] === q.correct
-                      ? "text-emerald-600"
-                      : "text-red-600"
-                  }
-                >
-                  {q.options[answers[index]] || "Not answered"}
-                </span>
-              </p>
-              {answers[index] !== q.correct && (
-                <p className="text-sm text-emerald-600 mb-2">
-                  <span className="font-medium">Correct answer:</span>{" "}
-                  {q.options[q.correct]}
-                </p>
-              )}
-              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                {q.explanation}
-              </p>
+          <div className="mb-8 text-center">
+            <div className={`text-5xl font-bold mb-2 ${scoreColor}`}>
+              {score}%
             </div>
-          ))}
-        </div>
+            <p className="text-slate-300">
+              You got {correct} out of {quiz.questions.length} questions correct!
+            </p>
+            {score === 100 && (
+              <p className="mt-2 text-yellow-400 font-medium">🏆 Perfect score!</p>
+            )}
+            {score >= 80 && score < 100 && (
+              <p className="mt-2 text-emerald-400 font-medium">🎉 Great job!</p>
+            )}
+          </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => setQuiz(null)}
-            className="flex-1 px-6 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-medium cursor-pointer"
-          >
-            Generate New Quiz
-          </button>
-          <button
-            onClick={() => setCurrentQuestion(0)}
-            className="flex-1 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium cursor-pointer"
-          >
-            Retake Quiz
-          </button>
+          <div className="space-y-6 mb-8">
+            {quiz.questions.map((q, index) => (
+              <div key={index} className="border border-slate-700 rounded-lg p-4 bg-slate-800">
+                <p className="font-semibold text-white mb-2">
+                  Question {index + 1}: {q.question}
+                </p>
+                <p className="text-sm mb-3">
+                  <span className="font-medium text-slate-300">Your answer:</span>{" "}
+                  <span
+                    className={
+                      answers[index] === q.correct ? "text-emerald-400" : "text-red-400"
+                    }
+                  >
+                    {q.options[answers[index]] || "Not answered"}
+                  </span>
+                </p>
+                {answers[index] !== q.correct && (
+                  <p className="text-sm text-emerald-400 mb-2">
+                    <span className="font-medium">Correct answer:</span>{" "}
+                    {q.options[q.correct]}
+                  </p>
+                )}
+                <p className="text-sm text-slate-300 bg-slate-700 p-3 rounded">
+                  {q.explanation}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setQuiz(null)}
+              className="flex-1 px-6 py-2 bg-slate-800 text-slate-200 rounded-lg hover:bg-slate-700 transition-colors font-medium cursor-pointer border border-slate-600"
+            >
+              Generate New Quiz
+            </button>
+            <button
+              onClick={() => { setCurrentQuestion(0); setShowResults(false); }}
+              className="flex-1 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors font-medium cursor-pointer"
+            >
+              Retake Quiz
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -169,21 +210,19 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
   const answered = answers[currentQuestion] !== -1;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-8">
+    <div className="rounded-lg border border-slate-700 bg-slate-900 p-8">
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-white">
             Question {currentQuestion + 1} of {quiz.questions.length}
           </h3>
-          <div className="text-sm text-gray-600">
-            {answered
-              ? "✓ Answered"
-              : "○ Not answered"}
+          <div className="text-sm text-slate-400">
+            {answered ? "✓ Answered" : "○ Not answered"}
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-slate-700 rounded-full h-2">
           <div
-            className="bg-emerald-600 h-2 rounded-full transition-all"
+            className="bg-emerald-500 h-2 rounded-full transition-all"
             style={{
               width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%`,
             }}
@@ -191,7 +230,7 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
         </div>
       </div>
 
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">
+      <h2 className="text-xl font-semibold text-white mb-6">
         {question.question}
       </h2>
 
@@ -202,23 +241,23 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
             onClick={() => handleAnswer(index)}
             className={`w-full text-left p-4 rounded-lg border-2 transition-all cursor-pointer ${
               answers[currentQuestion] === index
-                ? "border-emerald-600 bg-emerald-50"
-                : "border-gray-200 bg-white hover:border-gray-300"
+                ? "border-emerald-500 bg-slate-800"
+                : "border-slate-700 bg-slate-800 hover:border-slate-600"
             }`}
           >
             <div className="flex items-center">
               <div
                 className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
                   answers[currentQuestion] === index
-                    ? "border-emerald-600 bg-emerald-600"
-                    : "border-gray-300"
+                    ? "border-emerald-500 bg-emerald-500"
+                    : "border-slate-600 bg-slate-700"
                 }`}
               >
                 {answers[currentQuestion] === index && (
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
                 )}
               </div>
-              <span className="text-gray-900">{option}</span>
+              <span className="text-slate-100">{option}</span>
             </div>
           </button>
         ))}
@@ -228,18 +267,16 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
         <button
           onClick={handlePrevious}
           disabled={currentQuestion === 0}
-          className="px-6 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 transition-colors font-medium cursor-pointer"
+          className="px-6 py-2 bg-slate-800 text-slate-200 rounded-lg hover:bg-slate-700 disabled:bg-slate-700 disabled:text-slate-600 transition-colors font-medium cursor-pointer border border-slate-600"
         >
           Previous
         </button>
         <button
           onClick={handleNext}
           disabled={!answered}
-          className="flex-1 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 transition-colors font-medium cursor-pointer"
+          className="flex-1 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-600 transition-colors font-medium cursor-pointer"
         >
-          {currentQuestion === quiz.questions.length - 1
-            ? "See Results"
-            : "Next"}
+          {currentQuestion === quiz.questions.length - 1 ? "See Results" : "Next"}
         </button>
       </div>
     </div>

@@ -15,12 +15,13 @@ export default function LearnPage() {
   useEffect(() => {
     const topicId = params.topicId as string;
     const found = PERSONAL_FINANCE_INTERESTS.find((i) => i.id === topicId);
-    
+
     if (!found) {
       router.push("/");
       return;
     }
-    
+
+    localStorage.setItem("pfinance-current-topic", topicId);
     setInterest(found);
   }, [params, router]);
 
@@ -36,7 +37,7 @@ export default function LearnPage() {
     <div className="mx-auto max-w-6xl px-6 py-12">
       <button
         onClick={() => router.push("/dashboard")}
-        className="mb-6 text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer"
+        className="mb-6 text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
       >
         ← Back to Dashboard
       </button>
@@ -44,19 +45,19 @@ export default function LearnPage() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <span className="text-4xl">{interest.icon}</span>
-          <h1 className="text-3xl font-bold text-gray-900">{interest.label}</h1>
+          <h1 className="text-3xl font-bold text-white">{interest.label}</h1>
         </div>
-        <p className="text-gray-600">{interest.description}</p>
+        <p className="text-slate-400">{interest.description}</p>
       </div>
 
-      <div className="mb-6 border-b border-gray-200">
+      <div className="mb-6 border-b border-slate-700">
         <div className="flex gap-1">
           <button
             onClick={() => setTab("chat")}
             className={`px-6 py-3 font-medium transition-colors border-b-2 ${
               tab === "chat"
-                ? "border-emerald-600 text-emerald-600"
-                : "border-transparent text-gray-600 hover:text-gray-900 cursor-pointer"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-slate-400 hover:text-slate-300 cursor-pointer"
             }`}
           >
             💬 AI Tutor
@@ -65,8 +66,8 @@ export default function LearnPage() {
             onClick={() => setTab("quiz")}
             className={`px-6 py-3 font-medium transition-colors border-b-2 ${
               tab === "quiz"
-                ? "border-emerald-600 text-emerald-600"
-                : "border-transparent text-gray-600 hover:text-gray-900 cursor-pointer"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-slate-400 hover:text-slate-300 cursor-pointer"
             }`}
           >
             ✏️ Quiz

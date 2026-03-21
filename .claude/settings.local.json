@@ -6,7 +6,8 @@
       "Bash(npx create-next-app@latest temp-app --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --yes)",
       "Bash(shopt -s dotglob)",
       "Bash(cp -r temp-app/* .)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
