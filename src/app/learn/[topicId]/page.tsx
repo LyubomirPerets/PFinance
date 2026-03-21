@@ -5,12 +5,21 @@ import { useEffect, useState } from "react";
 import { PERSONAL_FINANCE_INTERESTS, Interest } from "@/lib/interests";
 import Chat from "@/components/Chat";
 import Quiz from "@/components/Quiz";
+import Scenario from "@/components/Scenario";
+
+type Tab = "chat" | "quiz" | "scenario";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "chat", label: "💬 AI Tutor" },
+  { id: "scenario", label: "🎭 Scenario" },
+  { id: "quiz", label: "✏️ Quiz" },
+];
 
 export default function LearnPage() {
   const params = useParams();
   const router = useRouter();
   const [interest, setInterest] = useState<Interest | null>(null);
-  const [tab, setTab] = useState<"chat" | "quiz">("chat");
+  const [tab, setTab] = useState<Tab>("chat");
 
   useEffect(() => {
     const topicId = params.topicId as string;
@@ -52,33 +61,30 @@ export default function LearnPage() {
 
       <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
         <div className="flex gap-1">
-          <button
-            onClick={() => setTab("chat")}
-            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
-              tab === "chat"
-                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-            }`}
-          >
-            💬 AI Tutor
-          </button>
-          <button
-            onClick={() => setTab("quiz")}
-            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
-              tab === "quiz"
-                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-            }`}
-          >
-            ✏️ Quiz
-          </button>
+          {TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+                tab === id
+                  ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="min-h-96">
-        {tab === "chat" ? (
+        {tab === "chat" && (
           <Chat topic={interest.id} topicLabel={interest.label} suggestions={interest.suggestions} />
-        ) : (
+        )}
+        {tab === "scenario" && (
+          <Scenario topic={interest.id} topicLabel={interest.label} />
+        )}
+        {tab === "quiz" && (
           <Quiz topic={interest.id} topicLabel={interest.label} />
         )}
       </div>

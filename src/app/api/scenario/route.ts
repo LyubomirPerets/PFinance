@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, topic, systemPromptOverride } = await request.json();
+    const { topic, topicLabel } = await request.json();
 
-    const systemPrompt = systemPromptOverride ??
-      `You are a friendly and knowledgeable personal finance tutor. You're helping users learn about ${topic}.
+    const prompt = `Generate a realistic personal finance scenario about ${topicLabel}.
 
-    Be conversational, use simple language, provide practical examples, and encourage deeper learning.
-    If the user asks something off-topic, gently redirect them back to the current topic.
-    Keep responses concise but informative.`;
+The scenario should:
+- Feature a specific person with realistic numbers and circumstances (age, income, debt amounts, etc.)
+- Present a genuine financial dilemma or decision point
+- Be 130–180 words
+- End with a clear question asking what the person should do
+
+Write only the scenario text — no headings, no commentary, no metadata. Start directly with the person's situation.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -20,9 +23,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-opus-4-1-20250805",
-        max_tokens: 500,
-        system: systemPrompt,
-        messages: messages,
+        max_tokens: 400,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
@@ -35,12 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const textContent = data.content.find((block: any) => block.type === "text");
-    return NextResponse.json({
-      content: textContent?.text || "No response generated",
-    });
+    const scenario =
+      data.content.find((block: { type: string }) => block.type === "text")
+        ?.text || "";
+
+    return NextResponse.json({ scenario, topic });
   } catch (error) {
-    console.error("Chat API error:", error);
+    console.error("Scenario API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

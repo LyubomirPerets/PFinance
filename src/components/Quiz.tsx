@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import confetti from "canvas-confetti";
-import { recordQuiz, Trophy } from "@/lib/gamification";
+import { recordQuiz, loadGameState, getTopicMastery, Trophy } from "@/lib/gamification";
 import TrophyModal from "./TrophyModal";
 
 interface Question {
@@ -20,6 +20,50 @@ interface QuizProps {
   topic: string;
   topicLabel: string;
 }
+
+interface SavedQuizState {
+  quiz: QuizData;
+  answers: number[];
+  currentQuestion: number;
+  difficulty: "easy" | "medium" | "hard";
+  timestamp: number;
+}
+
+// ── Save / load helpers ──────────────────────────────────────────────────────
+
+function saveKey(topic: string) {
+  return `pfinance-quiz-${topic}`;
+}
+
+function persistQuiz(topic: string, state: SavedQuizState) {
+  try {
+    localStorage.setItem(saveKey(topic), JSON.stringify(state));
+  } catch {}
+}
+
+function resumeQuiz(topic: string): SavedQuizState | null {
+  try {
+    const raw = localStorage.getItem(saveKey(topic));
+    if (!raw) return null;
+    const parsed: SavedQuizState = JSON.parse(raw);
+    // Expire after 24 h
+    if (Date.now() - parsed.timestamp > 86_400_000) {
+      localStorage.removeItem(saveKey(topic));
+      return null;
+    }
+    // Only show resume if at least one answer has been given
+    if (!parsed.answers.some((a) => a !== -1)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearSaved(topic: string) {
+  localStorage.removeItem(saveKey(topic));
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function calculateScore(questions: Question[], answers: number[]): { score: number; correct: number } {
   const correct = answers.filter((a, i) => a === questions[i].correct).length;
@@ -39,7 +83,13 @@ function generateButtonLabel(loading: boolean, hasError: boolean): string {
   return "Generate Quiz";
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function Quiz({ topic, topicLabel }: QuizProps) {
+  const [savedState] = useState<SavedQuizState | null>(() =>
+    typeof window === "undefined" ? null : resumeQuiz(topic)
+  );
+
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -48,10 +98,18 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
   const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
   const [finalScore, setFinalScore] = useState(0);
   const [quizError, setQuizError] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(() => {
+    if (typeof window === "undefined") return "medium";
+    const mastery = getTopicMastery(loadGameState().history, topic);
+    if (mastery === "Advanced") return "hard";
+    if (mastery === "Intermediate") return "medium";
+    if (mastery === "Beginner") return "easy";
+    return "medium";
+  });
   const [xpToast, setXpToast] = useState<number | null>(null);
 
   const generateQuiz = async () => {
+    clearSaved(topic);
     setLoading(true);
     setQuizError(null);
     try {
@@ -81,15 +139,36 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
     }
   };
 
+  const handleResume = () => {
+    if (!savedState) return;
+    setQuiz(savedState.quiz);
+    setAnswers(savedState.answers);
+    setCurrentQuestion(savedState.currentQuestion);
+    setDifficulty(savedState.difficulty);
+  };
+
   const handleAnswer = (optionIndex: number) => {
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = optionIndex;
     setAnswers(newAnswers);
+    if (quiz) {
+      persistQuiz(topic, {
+        quiz,
+        answers: newAnswers,
+        currentQuestion,
+        difficulty,
+        timestamp: Date.now(),
+      });
+    }
   };
 
   const handleNext = () => {
     if (currentQuestion < (quiz?.questions.length || 0) - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+      const next = currentQuestion + 1;
+      setCurrentQuestion(next);
+      if (quiz) {
+        persistQuiz(topic, { quiz, answers, currentQuestion: next, difficulty, timestamp: Date.now() });
+      }
     } else {
       finishQuiz();
     }
@@ -97,12 +176,17 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
+      const prev = currentQuestion - 1;
+      setCurrentQuestion(prev);
+      if (quiz) {
+        persistQuiz(topic, { quiz, answers, currentQuestion: prev, difficulty, timestamp: Date.now() });
+      }
     }
   };
 
   const finishQuiz = () => {
     if (!quiz) return;
+    clearSaved(topic);
     const { score, correct } = calculateScore(quiz.questions, answers);
     const { xp, trophies: unlocked } = recordQuiz(topic, score, correct, quiz.questions.length);
     setFinalScore(score);
@@ -122,11 +206,49 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
     setShowResults(true);
   };
 
+  // ── No quiz yet ─────────────────────────────────────────────────────────────
+
   if (!quiz) {
+    const answered = savedState
+      ? savedState.answers.filter((a) => a !== -1).length
+      : 0;
+
     return (
-      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 text-center">
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Test Your Knowledge</h3>
-        <p className="text-slate-500 dark:text-slate-400 mb-6">
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8">
+        {/* Resume banner */}
+        {savedState && (
+          <div className="mb-6 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-5 py-4">
+            <div>
+              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                📖 Saved quiz found
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Question {savedState.currentQuestion + 1} of {savedState.quiz.questions.length}
+                &nbsp;·&nbsp;{answered} answer{answered !== 1 ? "s" : ""} saved
+                &nbsp;·&nbsp;<span className="capitalize">{savedState.difficulty}</span>
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleResume}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors cursor-pointer"
+              >
+                Resume
+              </button>
+              <button
+                onClick={() => clearSaved(topic)}
+                className="rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
+
+        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4 text-center">
+          Test Your Knowledge
+        </h3>
+        <p className="text-slate-500 dark:text-slate-400 mb-6 text-center">
           Generate an AI-powered quiz about {topicLabel} to test your understanding.
         </p>
 
@@ -139,7 +261,9 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
             };
             const activeClass = activeColors[level];
             const className = `rounded-lg px-5 py-2 text-sm font-medium capitalize transition-colors cursor-pointer ${
-              difficulty === level ? activeClass : "border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500"
+              difficulty === level
+                ? activeClass
+                : "border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500"
             }`;
             return (
               <button key={level} onClick={() => setDifficulty(level)} className={className}>
@@ -150,20 +274,24 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
         </div>
 
         {quizError && (
-          <p className="mb-4 rounded-lg border border-red-500/40 bg-red-50 dark:bg-red-900/30 px-4 py-3 text-sm text-red-600 dark:text-red-300">
+          <p className="mb-4 rounded-lg border border-red-500/40 bg-red-50 dark:bg-red-900/30 px-4 py-3 text-sm text-red-600 dark:text-red-300 text-center">
             {quizError}
           </p>
         )}
-        <button
-          onClick={generateQuiz}
-          disabled={loading}
-          className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-600 transition-colors font-medium cursor-pointer"
-        >
-          {generateButtonLabel(loading, !!quizError)}
-        </button>
+        <div className="flex justify-center">
+          <button
+            onClick={generateQuiz}
+            disabled={loading}
+            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-600 transition-colors font-medium cursor-pointer"
+          >
+            {generateButtonLabel(loading, !!quizError)}
+          </button>
+        </div>
       </div>
     );
   }
+
+  // ── Results ─────────────────────────────────────────────────────────────────
 
   if (showResults) {
     const { score, correct } = calculateScore(quiz.questions, answers);
@@ -183,18 +311,12 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
           <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Quiz Results</h3>
 
           <div className="mb-8 text-center">
-            <div className={`text-5xl font-bold mb-2 ${color}`}>
-              {score}%
-            </div>
+            <div className={`text-5xl font-bold mb-2 ${color}`}>{score}%</div>
             <p className="text-slate-600 dark:text-slate-300">
               You got {correct} out of {quiz.questions.length} questions correct!
             </p>
-            {score === 100 && (
-              <p className="mt-2 text-yellow-500 dark:text-yellow-400 font-medium">🏆 Perfect score!</p>
-            )}
-            {score >= 80 && score < 100 && (
-              <p className="mt-2 text-emerald-600 dark:text-emerald-400 font-medium">🎉 Great job!</p>
-            )}
+            {score === 100 && <p className="mt-2 text-yellow-500 dark:text-yellow-400 font-medium">🏆 Perfect score!</p>}
+            {score >= 80 && score < 100 && <p className="mt-2 text-emerald-600 dark:text-emerald-400 font-medium">🎉 Great job!</p>}
           </div>
 
           <div className="space-y-6 mb-8">
@@ -205,18 +327,13 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
                 </p>
                 <p className="text-sm mb-3">
                   <span className="font-medium text-slate-600 dark:text-slate-300">Your answer:</span>{" "}
-                  <span
-                    className={
-                      answers[index] === q.correct ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                    }
-                  >
+                  <span className={answers[index] === q.correct ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
                     {q.options[answers[index]] || "Not answered"}
                   </span>
                 </p>
                 {answers[index] !== q.correct && (
                   <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-2">
-                    <span className="font-medium">Correct answer:</span>{" "}
-                    {q.options[q.correct]}
+                    <span className="font-medium">Correct answer:</span> {q.options[q.correct]}
                   </p>
                 )}
                 <p className="text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 p-3 rounded">
@@ -245,6 +362,8 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
     );
   }
 
+  // ── Active quiz ─────────────────────────────────────────────────────────────
+
   const question = quiz.questions[currentQuestion];
   const answered = answers[currentQuestion] !== -1;
 
@@ -262,16 +381,12 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
           <div
             className="bg-emerald-500 h-2 rounded-full transition-all"
-            style={{
-              width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%`,
-            }}
-          ></div>
+            style={{ width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%` }}
+          />
         </div>
       </div>
 
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">
-        {question.question}
-      </h2>
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">{question.question}</h2>
 
       <div className="space-y-3 mb-8">
         {question.options.map((option, index) => (
@@ -293,7 +408,7 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
                 }`}
               >
                 {answers[currentQuestion] === index && (
-                  <div className="w-2 h-2 bg-white dark:bg-slate-900 rounded-full"></div>
+                  <div className="w-2 h-2 bg-white dark:bg-slate-900 rounded-full" />
                 )}
               </div>
               <span className="text-slate-800 dark:text-slate-100">{option}</span>

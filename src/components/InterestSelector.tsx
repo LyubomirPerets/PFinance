@@ -26,7 +26,7 @@ export default function InterestSelector() {
       "pfinance-interests",
       JSON.stringify(Array.from(selected))
     );
-    router.push("/dashboard");
+    router.push("/assess");
   }
 
   return (

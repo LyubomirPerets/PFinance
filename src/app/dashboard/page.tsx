@@ -12,6 +12,8 @@ import {
   GameState,
   Mastery,
 } from "@/lib/gamification";
+import SmartSuggestions from "@/components/SmartSuggestions";
+import RadarChart from "@/components/RadarChart";
 
 const MASTERY_STYLES: Record<Mastery, { label: string; classes: string }> = {
   Beginner: {
@@ -45,32 +47,23 @@ export default function Dashboard() {
 
   useEffect(() => {
     const stored = localStorage.getItem("pfinance-interests");
-    if (!stored) {
-      router.push("/");
-      return;
-    }
+    if (!stored) { router.push("/"); return; }
     const ids: string[] = JSON.parse(stored);
     const matched = PERSONAL_FINANCE_INTERESTS.filter((i) => ids.includes(i.id));
-    if (matched.length === 0) {
-      router.push("/");
-      return;
-    }
+    if (matched.length === 0) { router.push("/"); return; }
     setInterests(matched);
     setGame(loadGameState());
 
     const currentId = localStorage.getItem("pfinance-current-topic");
     if (currentId) {
-      const found = PERSONAL_FINANCE_INTERESTS.find((i) => i.id === currentId);
-      setCurrentTopic(found ?? null);
+      setCurrentTopic(PERSONAL_FINANCE_INTERESTS.find((i) => i.id === currentId) ?? null);
     }
   }, [router]);
 
   if (interests.length === 0) return null;
 
   const level = game ? getLevel(game.xp) : null;
-  const earnedTrophies = game
-    ? TROPHIES.filter((t) => game.trophies.includes(t.id))
-    : [];
+  const earnedTrophies = game ? TROPHIES.filter((t) => game.trophies.includes(t.id)) : [];
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
@@ -108,10 +101,7 @@ export default function Dashboard() {
                 Reset Progress
               </button>
               <button
-                onClick={() => {
-                  localStorage.removeItem("pfinance-interests");
-                  router.push("/");
-                }}
+                onClick={() => { localStorage.removeItem("pfinance-interests"); router.push("/"); }}
                 className="rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Change Interests
@@ -155,22 +145,24 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">{game!.xp} XP total</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {level.progress} / {level.xpForNext} XP to next level
-              </p>
-            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {level.progress} / {level.xpForNext} XP to next level
+            </p>
           </div>
           <div className="w-full rounded-full bg-slate-200 dark:bg-slate-700 h-3">
             <div
               className="h-3 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-500"
-              style={{
-                width: `${(level.progress / level.xpForNext) * 100}%`,
-              }}
+              style={{ width: `${(level.progress / level.xpForNext) * 100}%` }}
             />
           </div>
         </div>
       )}
+
+      {/* Smart suggestions */}
+      {game && <SmartSuggestions interests={interests} game={game} />}
+
+      {/* Radar chart */}
+      {game && <RadarChart interests={interests} history={game.history} />}
 
       {/* Trophies */}
       {earnedTrophies.length > 0 && (
@@ -202,7 +194,6 @@ export default function Dashboard() {
         {interests.map((interest) => {
           const mastery = game ? getTopicMastery(game.history, interest.id) : null;
           const masteryStyle = mastery ? MASTERY_STYLES[mastery] : null;
-
           return (
             <div
               key={interest.id}
@@ -211,16 +202,12 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <span className="text-3xl">{interest.icon}</span>
                 {masteryStyle && (
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${masteryStyle.classes}`}
-                  >
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${masteryStyle.classes}`}>
                     {masteryStyle.label}
                   </span>
                 )}
               </div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                {interest.label}
-              </h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{interest.label}</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">{interest.description}</p>
               <Link
                 href={`/learn/${interest.id}`}

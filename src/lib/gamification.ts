@@ -164,3 +164,23 @@ function checkTrophies(state: GameState): Trophy[] {
 export function loadGameState(): GameState {
   return loadState();
 }
+
+/** Seeds an initial mastery level for a topic from the onboarding assessment.
+ *  No-ops if the topic already has real quiz history. */
+export function seedMastery(topicId: string, mastery: Mastery): void {
+  const state = loadState();
+  if (state.history.some((r) => r.topicId === topicId)) return;
+  const scoreMap: Record<Mastery, number> = {
+    Beginner: 40,
+    Intermediate: 70,
+    Advanced: 85,
+  };
+  state.history.push({
+    topicId,
+    score: scoreMap[mastery],
+    correct: 0,
+    total: 0,
+    timestamp: Date.now(),
+  });
+  saveState(state);
+}
