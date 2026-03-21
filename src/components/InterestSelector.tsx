@@ -32,10 +32,10 @@ export default function InterestSelector() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
           Welcome to PFinance
         </h1>
-        <p className="mt-3 text-lg text-slate-400">
+        <p className="mt-3 text-lg text-slate-500 dark:text-slate-400">
           Your AI-powered personal finance tutor. Pick the topics you want to
           learn about.
         </p>
@@ -60,13 +60,13 @@ export default function InterestSelector() {
             ${
               selected.size > 0
                 ? "bg-emerald-600 hover:bg-emerald-500 shadow-lg hover:shadow-xl cursor-pointer"
-                : "bg-slate-700 cursor-not-allowed"
+                : "bg-slate-300 dark:bg-slate-700 cursor-not-allowed"
             }`}
         >
           Continue ({selected.size} selected)
         </button>
         {selected.size === 0 && (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400 dark:text-slate-500">
             Select at least one topic to continue
           </p>
         )}

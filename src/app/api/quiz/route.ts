@@ -5,9 +5,9 @@ export async function POST(request: NextRequest) {
     const { topic, difficulty = "medium" } = await request.json();
 
     const difficultyGuide: Record<string, string> = {
-      easy: "Use simple language and test basic definitions. Suitable for complete beginners.",
-      medium: "Test practical understanding and applied knowledge. Suitable for someone who has read about the topic.",
-      hard: "Test nuanced, detailed knowledge with tricky distractors. Suitable for someone who already understands the basics well.",
+      easy: "Use simple language and test basic definitions. Suitable for complete beginners with no prior knowledge.",
+      medium: "Test practical understanding and applied knowledge. Suitable for someone who has read about the topic once or twice.",
+      hard: "Ask questions that require connecting concepts or thinking carefully, but still based on common personal finance knowledge a motivated beginner could learn. Avoid jargon, formulas, or anything requiring professional training. The questions should make someone think, not stump them.",
     };
 
     const systemPrompt = `You are a quiz generator for personal finance education. Generate a quiz about ${topic}.

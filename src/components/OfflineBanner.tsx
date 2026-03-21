@@ -28,8 +28,8 @@ export default function OfflineBanner() {
     <div
       className={`fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl px-5 py-3 text-sm font-medium shadow-xl transition-all duration-300 flex items-center gap-2 ${
         offline
-          ? "bg-red-900 border border-red-500/40 text-red-200"
-          : "bg-emerald-900 border border-emerald-500/40 text-emerald-200"
+          ? "bg-red-100 dark:bg-red-900 border border-red-500/40 text-red-700 dark:text-red-200"
+          : "bg-emerald-100 dark:bg-emerald-900 border border-emerald-500/40 text-emerald-700 dark:text-emerald-200"
       }`}
     >
       <span>{offline ? "⚠️" : "✓"}</span>

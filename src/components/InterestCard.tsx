@@ -48,8 +48,8 @@ export default function InterestCard({
         className={`relative flex flex-col items-start gap-2 rounded-xl border-2 p-5 text-left cursor-pointer w-full transition-all
           ${
             selected || isHovering
-              ? "border-emerald-500 bg-slate-800 shadow-lg shadow-emerald-500/50"
-              : "border-slate-700 bg-slate-900"
+              ? "border-emerald-500 bg-emerald-50 dark:bg-slate-800 shadow-lg shadow-emerald-500/50"
+              : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
           }`}
         style={{
           transform: isHovering ? "scale(1.5)" : "scale(1)",
@@ -62,7 +62,7 @@ export default function InterestCard({
           ${
             selected || isHovering
               ? "border-emerald-500 bg-emerald-500"
-              : "border-slate-600 bg-slate-800"
+              : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
           }`}
         >
           {selected && (
@@ -83,9 +83,9 @@ export default function InterestCard({
         </div>
         <span className="text-2xl">{interest.icon}</span>
         <div className="w-full">
-          <h3 className="font-semibold text-white">{interest.label}</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-white">{interest.label}</h3>
           {isHovering && (
-            <p className="mt-2 text-sm text-slate-300">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               {getTooltipText(interest.id)}
             </p>
           )}

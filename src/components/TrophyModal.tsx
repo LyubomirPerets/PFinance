@@ -51,16 +51,16 @@ export default function TrophyModal({ trophies, topicLabel, score, onClose }: Tr
       onClick={handleClose}
     >
       <div
-        className={`mx-4 w-full max-w-sm rounded-2xl border border-yellow-500/40 bg-slate-900 p-8 shadow-2xl shadow-yellow-500/10 transition-all duration-300 ${
+        className={`mx-4 w-full max-w-sm rounded-2xl border border-yellow-500/40 bg-white dark:bg-slate-900 p-8 shadow-2xl shadow-yellow-500/10 transition-all duration-300 ${
           visible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-2 text-center text-4xl">🎉</div>
-        <h2 className="mb-1 text-center text-2xl font-bold text-white">
+        <h2 className="mb-1 text-center text-2xl font-bold text-slate-900 dark:text-white">
           Trophy Unlocked!
         </h2>
-        <p className="mb-6 text-center text-sm text-slate-400">
+        <p className="mb-6 text-center text-sm text-slate-500 dark:text-slate-400">
           You earned {trophies.length === 1 ? "a new trophy" : `${trophies.length} new trophies`}
         </p>
 
@@ -72,8 +72,8 @@ export default function TrophyModal({ trophies, topicLabel, score, onClose }: Tr
             >
               <span className="text-3xl">{trophy.icon}</span>
               <div>
-                <p className="font-semibold text-yellow-300">{trophy.label}</p>
-                <p className="text-sm text-slate-400">
+                <p className="font-semibold text-yellow-700 dark:text-yellow-300">{trophy.label}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {trophyReason(trophy.id, topicLabel, score)}
                 </p>
               </div>

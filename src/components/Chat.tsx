@@ -107,7 +107,7 @@ export default function Chat({ topic, topicLabel, suggestions = [] }: ChatProps)
   };
 
   return (
-    <div className="flex flex-col h-full rounded-lg border border-slate-700 bg-slate-900 overflow-hidden">
+    <div className="flex flex-col h-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden">
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((message, index) => (
           <div
@@ -115,19 +115,19 @@ export default function Chat({ topic, topicLabel, suggestions = [] }: ChatProps)
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {message.isError ? (
-              <div className="max-w-xs lg:max-w-md rounded-lg rounded-bl-none border border-red-500/40 bg-red-900/30 px-4 py-3">
-                <p className="text-sm text-red-300">{message.content}</p>
+              <div className="max-w-xs lg:max-w-md rounded-lg rounded-bl-none border border-red-500/40 bg-red-50 dark:bg-red-900/30 px-4 py-3">
+                <p className="text-sm text-red-600 dark:text-red-300">{message.content}</p>
                 <button
                   onClick={handleRetry}
                   disabled={loading}
-                  className="mt-2 text-xs font-medium text-red-400 hover:text-red-300 underline underline-offset-2 cursor-pointer disabled:opacity-50"
+                  className="mt-2 text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-400 dark:hover:text-red-300 underline underline-offset-2 cursor-pointer disabled:opacity-50"
                 >
                   Retry
                 </button>
               </div>
             ) : message.role === "assistant" ? (
-              <div className="max-w-xs lg:max-w-2xl px-4 py-3 rounded-lg rounded-bl-none bg-slate-800 text-slate-100 border border-slate-700">
-                <div className="prose prose-sm prose-invert max-w-none">
+              <div className="max-w-xs lg:max-w-2xl px-4 py-3 rounded-lg rounded-bl-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
               </div>
@@ -145,7 +145,7 @@ export default function Chat({ topic, topicLabel, suggestions = [] }: ChatProps)
               <button
                 key={s}
                 onClick={() => handleSuggestion(s)}
-                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-sm text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/70 transition-colors cursor-pointer"
+                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-sm text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/70 transition-colors cursor-pointer"
               >
                 {s}
               </button>
@@ -155,11 +155,11 @@ export default function Chat({ topic, topicLabel, suggestions = [] }: ChatProps)
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-800 text-slate-100 px-4 py-2 rounded-lg rounded-bl-none border border-slate-700">
+            <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-4 py-2 rounded-lg rounded-bl-none border border-slate-200 dark:border-slate-700">
               <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-slate-600 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-slate-600 rounded-full animate-bounce delay-100"></div>
-                <div className="w-2 h-2 bg-slate-600 rounded-full animate-bounce delay-200"></div>
+                <div className="w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full animate-bounce delay-100"></div>
+                <div className="w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full animate-bounce delay-200"></div>
               </div>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function Chat({ topic, topicLabel, suggestions = [] }: ChatProps)
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="border-t border-slate-700 p-4 bg-slate-800">
+      <form onSubmit={handleSend} className="border-t border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-800">
         <div className="flex gap-3">
           <input
             type="text"
@@ -175,12 +175,12 @@ export default function Chat({ topic, topicLabel, suggestions = [] }: ChatProps)
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask me something..."
             disabled={loading}
-            className="flex-1 px-4 py-2 border border-slate-600 rounded-lg bg-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-600"
+            className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 dark:disabled:bg-slate-600"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:bg-slate-700 transition-colors font-medium cursor-pointer"
+            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-600 transition-colors font-medium cursor-pointer"
           >
             Send
           </button>

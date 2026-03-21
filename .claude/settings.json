@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -o 'darkMode[^;`\"\"\"\"]\\\\{0,100\\\\}' node_modules/tailwindcss/dist/lib.js)"
+    ]
+  }
+}
