@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { topic } = await request.json();
+    const { topic, difficulty = "medium" } = await request.json();
+
+    const difficultyGuide: Record<string, string> = {
+      easy: "Use simple language and test basic definitions. Suitable for complete beginners.",
+      medium: "Test practical understanding and applied knowledge. Suitable for someone who has read about the topic.",
+      hard: "Test nuanced, detailed knowledge with tricky distractors. Suitable for someone who already understands the basics well.",
+    };
 
     const systemPrompt = `You are a quiz generator for personal finance education. Generate a quiz about ${topic}.
-    
+
+    Difficulty: ${difficulty.toUpperCase()} — ${difficultyGuide[difficulty] ?? difficultyGuide.medium}
+
     Return a JSON object with the following structure:
     {
       "questions": [
@@ -17,8 +25,8 @@ export async function POST(request: NextRequest) {
         }
       ]
     }
-    
-    Generate 3-5 questions. Make them educational but not overly difficult.`;
+
+    Generate 5 questions. Match the difficulty level strictly.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

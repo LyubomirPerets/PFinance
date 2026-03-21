@@ -77,7 +77,7 @@ export default function LearnPage() {
 
       <div className="min-h-96">
         {tab === "chat" ? (
-          <Chat topic={interest.id} topicLabel={interest.label} />
+          <Chat topic={interest.id} topicLabel={interest.label} suggestions={interest.suggestions} />
         ) : (
           <Quiz topic={interest.id} topicLabel={interest.label} />
         )}

@@ -96,7 +96,7 @@ export function getTopicMastery(
 }
 
 function loadState(): GameState {
-  if (typeof window === "undefined")
+  if (globalThis.window === undefined)
     return { xp: 0, history: [], trophies: [] };
   try {
     const raw = localStorage.getItem("pfinance-game");
@@ -111,13 +111,13 @@ function saveState(state: GameState) {
 }
 
 /** Records a quiz result, awards XP, checks trophies.
- *  Returns newly unlocked trophies. */
+ *  Returns XP earned and newly unlocked trophies. */
 export function recordQuiz(
   topicId: string,
   score: number,
   correct: number,
   total: number
-): Trophy[] {
+): { xp: number; trophies: Trophy[] } {
   const state = loadState();
   const earned = calcXp(score, correct);
   const result: QuizResult = {
@@ -135,7 +135,7 @@ export function recordQuiz(
   newTrophies.forEach((t) => state.trophies.push(t.id));
 
   saveState(state);
-  return newTrophies;
+  return { xp: earned, trophies: newTrophies };
 }
 
 function checkTrophies(state: GameState): Trophy[] {

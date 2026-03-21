@@ -32,7 +32,16 @@ export default function Dashboard() {
   const [interests, setInterests] = useState<Interest[]>([]);
   const [game, setGame] = useState<GameState | null>(null);
   const [currentTopic, setCurrentTopic] = useState<Interest | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const router = useRouter();
+
+  const handleReset = () => {
+    localStorage.removeItem("pfinance-game");
+    localStorage.removeItem("pfinance-current-topic");
+    setGame({ xp: 0, history: [], trophies: [] });
+    setCurrentTopic(null);
+    setConfirmReset(false);
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("pfinance-interests");
@@ -73,15 +82,43 @@ export default function Dashboard() {
             Pick a topic to start learning with your AI tutor.
           </p>
         </div>
-        <button
-          onClick={() => {
-            localStorage.removeItem("pfinance-interests");
-            router.push("/");
-          }}
-          className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
-        >
-          Change Interests
-        </button>
+        <div className="flex items-center gap-2">
+          {confirmReset ? (
+            <>
+              <span className="text-sm text-slate-400">Wipe all progress?</span>
+              <button
+                onClick={handleReset}
+                className="rounded-lg border border-red-500/50 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                Yes, reset
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setConfirmReset(true)}
+                className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-500 hover:text-red-400 hover:border-red-500/50 transition-colors cursor-pointer"
+              >
+                Reset Progress
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem("pfinance-interests");
+                  router.push("/");
+                }}
+                className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Change Interests
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* In progress */}

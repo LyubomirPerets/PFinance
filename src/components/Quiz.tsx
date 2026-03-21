@@ -21,6 +21,24 @@ interface QuizProps {
   topicLabel: string;
 }
 
+function calculateScore(questions: Question[], answers: number[]): { score: number; correct: number } {
+  const correct = answers.filter((a, i) => a === questions[i].correct).length;
+  return { score: Math.round((correct / questions.length) * 100), correct };
+}
+
+function scoreColor(score: number): string {
+  if (score === 100) return "text-yellow-400";
+  if (score >= 80) return "text-emerald-400";
+  if (score >= 60) return "text-blue-400";
+  return "text-red-400";
+}
+
+function generateButtonLabel(loading: boolean, hasError: boolean): string {
+  if (loading) return "Generating Quiz...";
+  if (hasError) return "Try Again";
+  return "Generate Quiz";
+}
+
 export default function Quiz({ topic, topicLabel }: QuizProps) {
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,19 +47,23 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
   const [showResults, setShowResults] = useState(false);
   const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
   const [finalScore, setFinalScore] = useState(0);
+  const [quizError, setQuizError] = useState<string | null>(null);
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [xpToast, setXpToast] = useState<number | null>(null);
 
   const generateQuiz = async () => {
     setLoading(true);
+    setQuizError(null);
     try {
       const response = await fetch("/api/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topicLabel }),
+        body: JSON.stringify({ topic: topicLabel, difficulty }),
       });
 
       const data = await response.json();
-      if (data.error) {
-        alert(`Error: ${data.error}`);
+      if (!response.ok || data.error) {
+        setQuizError(data.error || "Failed to generate quiz. Please try again.");
       } else {
         setQuiz(data);
         setAnswers(new Array(data.questions.length).fill(-1));
@@ -49,8 +71,11 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
         setShowResults(false);
         setNewTrophies([]);
       }
-    } catch (error) {
-      alert("Failed to generate quiz. Please try again.");
+    } catch {
+      const msg = navigator.onLine
+        ? "Could not reach the server. Please try again."
+        : "You're offline. Check your connection and try again.";
+      setQuizError(msg);
     } finally {
       setLoading(false);
     }
@@ -78,12 +103,12 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
 
   const finishQuiz = () => {
     if (!quiz) return;
-    const correct = answers.filter((a, i) => a === quiz.questions[i].correct).length;
-    const score = Math.round((correct / quiz.questions.length) * 100);
-
-    const unlocked = recordQuiz(topic, score, correct, quiz.questions.length);
+    const { score, correct } = calculateScore(quiz.questions, answers);
+    const { xp, trophies: unlocked } = recordQuiz(topic, score, correct, quiz.questions.length);
     setFinalScore(score);
     setNewTrophies(unlocked);
+    setXpToast(xp);
+    setTimeout(() => setXpToast(null), 2500);
 
     if (score >= 80) {
       confetti({
@@ -97,46 +122,60 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
     setShowResults(true);
   };
 
-  const calculateScore = () => {
-    if (!quiz) return 0;
-    const correct = answers.filter((a, i) => a === quiz.questions[i].correct).length;
-    return Math.round((correct / quiz.questions.length) * 100);
-  };
-
   if (!quiz) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900 p-8 text-center">
-        <h3 className="text-xl font-semibold text-white mb-4">
-          Test Your Knowledge
-        </h3>
+        <h3 className="text-xl font-semibold text-white mb-4">Test Your Knowledge</h3>
         <p className="text-slate-400 mb-6">
           Generate an AI-powered quiz about {topicLabel} to test your understanding.
         </p>
+
+        <div className="mb-6 flex justify-center gap-2">
+          {(["easy", "medium", "hard"] as const).map((level) => {
+            const activeColors: Record<string, string> = {
+              easy: "bg-blue-600 text-white",
+              medium: "bg-yellow-600 text-white",
+              hard: "bg-red-600 text-white",
+            };
+            const activeClass = activeColors[level];
+            const className = `rounded-lg px-5 py-2 text-sm font-medium capitalize transition-colors cursor-pointer ${
+              difficulty === level ? activeClass : "border border-slate-600 text-slate-400 hover:border-slate-500"
+            }`;
+            return (
+              <button key={level} onClick={() => setDifficulty(level)} className={className}>
+                {level}
+              </button>
+            );
+          })}
+        </div>
+
+        {quizError && (
+          <p className="mb-4 rounded-lg border border-red-500/40 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+            {quizError}
+          </p>
+        )}
         <button
           onClick={generateQuiz}
           disabled={loading}
           className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:bg-slate-700 transition-colors font-medium cursor-pointer"
         >
-          {loading ? "Generating Quiz..." : "Generate Quiz"}
+          {generateButtonLabel(loading, !!quizError)}
         </button>
       </div>
     );
   }
 
   if (showResults) {
-    const score = calculateScore();
-    const correct = answers.filter((a, i) => a === quiz.questions[i].correct).length;
-    const scoreColor =
-      score === 100
-        ? "text-yellow-400"
-        : score >= 80
-        ? "text-emerald-400"
-        : score >= 60
-        ? "text-blue-400"
-        : "text-red-400";
+    const { score, correct } = calculateScore(quiz.questions, answers);
+    const color = scoreColor(score);
 
     return (
       <>
+        {xpToast !== null && (
+          <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 animate-bounce rounded-full border border-emerald-500/40 bg-emerald-900 px-6 py-2.5 text-sm font-bold text-emerald-300 shadow-xl">
+            +{xpToast} XP
+          </div>
+        )}
         {newTrophies.length > 0 && (
           <TrophyModal trophies={newTrophies} topicLabel={topicLabel} score={finalScore} onClose={() => setNewTrophies([])} />
         )}
@@ -144,7 +183,7 @@ export default function Quiz({ topic, topicLabel }: QuizProps) {
           <h3 className="text-2xl font-bold text-white mb-6">Quiz Results</h3>
 
           <div className="mb-8 text-center">
-            <div className={`text-5xl font-bold mb-2 ${scoreColor}`}>
+            <div className={`text-5xl font-bold mb-2 ${color}`}>
               {score}%
             </div>
             <p className="text-slate-300">
